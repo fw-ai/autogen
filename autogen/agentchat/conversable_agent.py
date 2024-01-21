@@ -9,7 +9,15 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
-from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from ..code_utils import (
+    DEFAULT_MODEL,
+    UNKNOWN,
+    content_str,
+    execute_code,
+    execute_code_from_work_dir,
+    extract_code,
+    infer_lang,
+)
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
@@ -1469,16 +1477,16 @@ class ConversableAgent(Agent):
         func_name = func_call.get("name", "")
         func = self._function_map.get(func_name, None)
 
+        input_string = self._format_json_str(func_call.get("arguments", "{}"))
+        try:
+            arguments = json.loads(input_string)
+        except json.JSONDecodeError as e:
+            arguments = None
+            content = f"Error: {e}\n You argument should follow json format."
+
         is_exec_success = False
         if func is not None:
             # Extract arguments from a json-like string and put it into a dict.
-            input_string = self._format_json_str(func_call.get("arguments", "{}"))
-            try:
-                arguments = json.loads(input_string)
-            except json.JSONDecodeError as e:
-                arguments = None
-                content = f"Error: {e}\n You argument should follow json format."
-
             # Try to execute the function
             if arguments is not None:
                 print(
@@ -1491,7 +1499,15 @@ class ConversableAgent(Agent):
                 except Exception as e:
                     content = f"Error: {e}"
         else:
-            content = f"Error: Function {func_name} not found."
+            try:
+                content = execute_code_from_work_dir(
+                    self._code_execution_config["work_dir"] + "/skills.py", func_name, arguments
+                )
+                is_exec_success = True
+            except KeyError:
+                content = f"Error: Function {func_name} not found."
+            except Exception as e:
+                content = f"Error: {e}"
 
         if verbose:
             print(

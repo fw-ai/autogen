@@ -1,12 +1,24 @@
 import ast
 import base64
 import hashlib
-from typing import List, Dict, Tuple, Union
+from typing import Any, Callable, List, Dict, Optional, Tuple, TypeVar, Union
 import os
 import shutil
 import re
 import autogen
-from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
+from autogen.function_utils import get_function_schema
+from ..datamodel import (
+    AgentConfig,
+    AgentFlowSpec,
+    AgentWorkFlowConfig,
+    LLMConfig,
+    Skill,
+)
+
+F = TypeVar("F", bound=Callable[..., Any])
+
+PARSED_SCHEMA: Optional[Dict[str, Any]] = None
+FN_INSTANCE: Optional[F] = None
 
 
 def md5_hash(text: str) -> str:
@@ -83,7 +95,16 @@ def get_file_type(file_path: str) -> str:
     }
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".tiff",
+        ".svg",
+        ".webp",
+    }
     # Supported (web) video extensions
     VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
@@ -174,7 +195,9 @@ def get_modified_files(
                 while os.path.exists(dest_file_path):
                     base, extension = os.path.splitext(file)
                     # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
+                    dest_file_path = os.path.join(
+                        dest_dir, f"{base}_{copy_idx}{extension}"
+                    )
                     copy_idx += 1
 
                 # Copying the modified file to the destination directory
@@ -221,6 +244,54 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     return folders
 
 
+def save_skils(prompt: str, work_dir: str) -> None:
+    # check if work_dir exists
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+
+    # check if skills.py exist. if exists, append to the file, else create a new file and write to it
+
+    if os.path.exists(os.path.join(work_dir, "skills.py")):
+        with open(os.path.join(work_dir, "skills.py"), "a", encoding="utf-8") as f:
+            f.write(prompt)
+    else:
+        with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+            f.write(prompt)
+
+
+def generate_prompt_from_skill(skill: Skill) -> str:
+    return f"""
+    ##### Begin of {skill.title} #####
+
+    {skill.content}
+
+    #### End of {skill.title} ####
+    """
+
+
+def get_prompt_and_tools_from_skills(
+    skills: List[Skill], work_dir: str
+) -> Union[str, List[Dict[str, Any]]]:
+    global PARSED_SCHEMA
+    tools: List[Dict[str, Any]] = []
+    fn_instance: List[F] = []
+    for skill in skills:
+        # Set parsed schema to None
+        PARSED_SCHEMA = None
+        exec(skill.content)
+        if PARSED_SCHEMA is not None:
+            tools.append(PARSED_SCHEMA)
+            assert (
+                FN_INSTANCE is not None
+            ), f"FN_INSTANCE is none for parsed schema {PARSED_SCHEMA}"
+            fn_instance.append(FN_INSTANCE)
+
+    # Save every function to work_dir for execution later
+    prompt = get_skills_from_prompt(skills, work_dir)
+
+    return prompt, tools, fn_instance
+
+
 def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
     """
     Create a prompt with the content of all skills and write the skills to a file named skills.py in the work_dir.
@@ -239,28 +310,8 @@ install via pip and use --quiet option.
          """
     prompt = ""  # filename:  skills.py
     for skill in skills:
-        prompt += f"""
-
-##### Begin of {skill.title} #####
-
-{skill.content}
-
-#### End of {skill.title} ####
-
-        """
-
-    # check if work_dir exists
-    if not os.path.exists(work_dir):
-        os.makedirs(work_dir)
-
-    # check if skills.py exist. if exists, append to the file, else create a new file and write to it
-
-    if os.path.exists(os.path.join(work_dir, "skills.py")):
-        with open(os.path.join(work_dir, "skills.py"), "a", encoding="utf-8") as f:
-            f.write(prompt)
-    else:
-        with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-            f.write(prompt)
+        prompt += generate_prompt_from_skill(skill)
+    save_skils(prompt, work_dir)
 
     return instruction + prompt
 
@@ -322,7 +373,9 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get("content", "")
+            .rstrip()
+            .endswith("TERMINATE"),
         ),
     )
 
@@ -373,3 +426,16 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)
 
     return successful_code_blocks
+
+
+# TODO Think about moving this to layer above
+def schema_recorder(*, description: Optional[str] = None) -> Callable[[F], F]:
+    def _decorator(func: F) -> F:
+        global PARSED_SCHEMA
+        global FN_INSTANCE
+        # TODO handle failure case scenario
+        PARSED_SCHEMA = get_function_schema(func, description=description)
+        FN_INSTANCE = func
+        return func
+
+    return _decorator

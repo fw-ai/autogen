@@ -102,7 +102,8 @@ class AutoGenWorkFlowManager:
         """
 
         agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
-            lambda x: "TERMINATE" in x.get("content", "").rstrip()
+            lambda x: x.get("content", "")
+            and "TERMINATE" in x.get("content", "").rstrip()
         )
         skills_prompt = ""
         if agent_spec.skills:
@@ -139,10 +140,18 @@ class AutoGenWorkFlowManager:
         agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "assistant":
             agent = autogen.AssistantAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None],
+                reply_func=self.process_reply,
+                config={"callback": None},
+            )
         elif agent_spec.type == "userproxy":
             agent = autogen.UserProxyAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None],
+                reply_func=self.process_reply,
+                config={"callback": None},
+            )
         else:
             raise ValueError(f"Unknown agent type: {agent_spec.type}")
         return agent

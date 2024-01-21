@@ -1,6 +1,6 @@
 {
-  "name": "General Agent Workflow",
-  "description": "A general agent workflow",
+  "name": "Test Agent Workflow",
+  "description": "A workflow to quickly test agents",
   "sender": {
     "type": "userproxy",
     "config": {
@@ -23,13 +23,6 @@
         "config_list": [
           {
             "model": "gpt-4-1106-preview"
-          },
-          {
-            "model": "gpt-3.5-turbo-16k"
-          },
-          {
-            "model": "TheBloke/zephyr-7B-alpha-AWQ",
-            "base_url": "http://localhost:8000/v1"
           }
         ],
         "temperature": 0.1,
@@ -39,7 +32,14 @@
       "human_input_mode": "NEVER",
       "max_consecutive_auto_reply": 8,
       "system_message": "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc. The summary MUST end with the word TERMINATE. If the  user request is pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
-    }
+    },
+    "skills": [
+      {
+        "title": "generate_and_save_images",
+        "file_name": "generate_and_save_images.py",
+        "content": "\nfrom typing import List\nimport uuid\nimport requests  # to perform HTTP requests\nfrom pathlib import Path\nfrom typing_extensions import Annotated\nfrom openai import OpenAI\nfrom firestudio.utils.utils import schema_recorder\n\n@schema_recorder(description=\"Function to paint, draw or illustrate images based on the users query or request. Generates images from a given query using OpenAI's DALL-E model and saves them to disk.  Use the code below anytime there is a request to create an image\")\ndef generate_and_save_images(query: Annotated[str, \"A natural language description of the image to be generated.\"], image_size: Annotated[str, \"The size of the image to be generated. default is '1024x1024'\"] = \"1024x1024\") -> List[str]:\n    client = OpenAI()  # Initialize the OpenAI client\n    response = client.images.generate(model=\"dall-e-3\", prompt=query, n=1, size=image_size)  # Generate images\n\n    # List to store the file names of saved images\n    saved_files = []\n\n    # Check if the response is successful\n    if response.data:\n        for image_data in response.data:\n            # Generate a random UUID as the file name\n            file_name = str(uuid.uuid4()) + \".png\"  # Assuming the image is a PNG\n            file_path = Path(file_name)\n\n            img_url = image_data.url\n            img_response = requests.get(img_url)\n            if img_response.status_code == 200:\n                # Write the binary content to a file\n                with open(file_path, \"wb\") as img_file:\n                    img_file.write(img_response.content)\n                    print(f\"Image saved to {file_path}\")\n                    saved_files.append(str(file_path))\n            else:\n                print(f\"Failed to download the image from {img_url}\")\n    else:\n        print(\"No image data found in the response!\")\n\n    # Return the list of saved files\n    return saved_files\n\n\n# Example usage of the function:\n# generate_and_save_images(\"A cute baby sea otter\")\n"
+      }
+    ]
   },
   "type": "default"
 }

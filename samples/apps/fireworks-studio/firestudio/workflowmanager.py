@@ -1,9 +1,12 @@
-from typing import List, Optional
 from dataclasses import asdict
 import autogen
 from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
-from .utils import get_skills_from_prompt, clear_folder
+from .utils import get_prompt_and_tools_from_skills, clear_folder
 from datetime import datetime
+from typing import Any, Callable, List, Dict, Optional, Tuple, TypeVar, Union
+
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class AutoGenWorkFlowManager:
@@ -31,8 +34,17 @@ class AutoGenWorkFlowManager:
         if clear_work_dir:
             clear_folder(self.work_dir)
 
-        self.sender = self.load(config.sender)
+        self.functions: List[F] = []
+
         self.receiver = self.load(config.receiver)
+        self.sender = self.load(config.sender)
+
+        # Forcefully register functions for execution
+        # for function in self.functions:
+        #     print(f"Trying to register {function.__name__}")
+        #     self.sender.register_for_execution()(function)
+        # self.functions = []
+
         self.agent_history = []
 
         if history:
@@ -102,12 +114,19 @@ class AutoGenWorkFlowManager:
         """
 
         agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
-            lambda x: "TERMINATE" in x.get("content", "").rstrip()
+            lambda x: x.get("content", "")
+            and "TERMINATE" in x.get("content", "").rstrip()
         )
         skills_prompt = ""
         if agent_spec.skills:
-            # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            # Get both the skills prompt and the tools available to the model
+            # For functions that are annotated properly we get tools, for remaining
+            # we get the skills_prompt
+            skills_prompt, tools, functions = get_prompt_and_tools_from_skills(
+                agent_spec.skills, self.work_dir
+            )
+            agent_spec.config.llm_config.tools = tools
+            self.functions += functions
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
@@ -139,10 +158,18 @@ class AutoGenWorkFlowManager:
         agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "assistant":
             agent = autogen.AssistantAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None],
+                reply_func=self.process_reply,
+                config={"callback": None},
+            )
         elif agent_spec.type == "userproxy":
             agent = autogen.UserProxyAgent(**asdict(agent_spec.config))
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None],
+                reply_func=self.process_reply,
+                config={"callback": None},
+            )
         else:
             raise ValueError(f"Unknown agent type: {agent_spec.type}")
         return agent

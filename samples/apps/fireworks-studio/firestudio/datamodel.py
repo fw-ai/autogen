@@ -76,6 +76,7 @@ class LLMConfig:
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
+    tools: Optional[List[Dict[str, Any]]] = None
 
 
 @dataclass
