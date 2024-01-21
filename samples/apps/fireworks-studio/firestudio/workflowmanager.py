@@ -34,16 +34,8 @@ class AutoGenWorkFlowManager:
         if clear_work_dir:
             clear_folder(self.work_dir)
 
-        self.functions: List[F] = []
-
         self.receiver = self.load(config.receiver)
         self.sender = self.load(config.sender)
-
-        # Forcefully register functions for execution
-        # for function in self.functions:
-        #     print(f"Trying to register {function.__name__}")
-        #     self.sender.register_for_execution()(function)
-        # self.functions = []
 
         self.agent_history = []
 
@@ -126,7 +118,6 @@ class AutoGenWorkFlowManager:
                 agent_spec.skills, self.work_dir
             )
             agent_spec.config.llm_config.tools = tools
-            self.functions += functions
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}

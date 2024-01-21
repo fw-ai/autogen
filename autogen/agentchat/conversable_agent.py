@@ -1498,6 +1498,10 @@ class ConversableAgent(Agent):
                     is_exec_success = True
                 except Exception as e:
                     content = f"Error: {e}"
+        elif func_name == "python":
+            exitcode, content = self.execute_code_blocks([("python", func_call.get("arguments", "{}"))])
+            if exitcode != 0:
+                is_exec_success = False
         else:
             try:
                 content = execute_code_from_work_dir(
