@@ -639,7 +639,11 @@ def implement(
 
 
 def execute_code_from_work_dir(file_path: str, func_name: str, arguments: Dict[str, Any]) -> Any:
-    with open(file_path, "r") as file:
+    # Move to work dir before execution
+    dir_path = os.path.dirname(file_path)  ## directory of file
+    os.chdir(dir_path)
+    file_name = os.path.basename(file_path)
+    with open(file_name, "r") as file:
         code = compile(file.read(), file_path, "exec")
         exec(code, globals())
 

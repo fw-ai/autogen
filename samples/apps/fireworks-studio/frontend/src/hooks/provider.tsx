@@ -46,11 +46,24 @@ const Provider = ({ children }: any) => {
     setLocalStorage("darkmode", darkMode, false);
   };
 
+  const makeString = (): string => {
+    let outString: string = '';
+    let inOptions: string = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+    for (let i = 0; i < 32; i++) {
+
+      outString += inOptions.charAt(Math.floor(Math.random() * inOptions.length));
+
+    }
+
+    return outString;
+  }
+
   // Modify logic here to add your own authentication
   const initUser = {
-    name: "Guest User",
-    email: "guestuser@gmail.com",
-    username: "guestuser",
+    name: makeString(),
+    email: makeString() + "@gmail.com",
+    username: makeString(),
   };
   const [user, setUser] = useState<IUser | null>(initUser);
 
