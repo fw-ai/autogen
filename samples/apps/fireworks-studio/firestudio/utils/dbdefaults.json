@@ -178,7 +178,6 @@
             "config_list": [
               {
                 "model": "accounts/fireworks/models/firefunction-v1",
-                "api_key": "vnAo7YlsAt4Pwv2LpOAi8TyXklMqUOazjwx9mDLmHcdXoLUH",
                 "base_url": "https://api.fireworks.ai/inference/v1"
               }
             ],
