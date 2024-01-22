@@ -56,7 +56,7 @@ export interface IFlowConfig {
   name: string;
   description: string;
   sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec;
+  receiver: IAgentFlowSpec | Array<IAgentFlowSpec>;
   type: "default" | "groupchat";
   timestamp?: string;
   summary_method?: "none" | "last" | "llm";

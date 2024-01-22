@@ -1,6 +1,7 @@
 import json
 import os
 import traceback
+from typing import Any, Dict, List
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -64,7 +65,7 @@ chatmanager = AutoGenChatManager()  # manage calls to autogen
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
     message = Message(**req.message.dict())
-    user_history = dbutils.get_messages(
+    user_history: List[Message] = dbutils.get_messages(
         user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager
     )
 
@@ -76,19 +77,26 @@ async def add_message(req: ChatWebRequestModel):
     os.makedirs(user_dir, exist_ok=True)
 
     try:
-        response_message: Message = chatmanager.chat(
+        response_messages: List[Message] = chatmanager.chat(
             message=message,
-            history=user_history,
+            history_list=user_history,
+            agent_flow_config=req.flow_config,
             work_dir=user_dir,
-            flow_config=req.flow_config,
         )
 
         # save assistant response to db
-        dbutils.create_message(message=response_message, dbmanager=dbmanager)
+        for response_message in response_messages:
+            dbutils.create_message(message=response_message, dbmanager=dbmanager)
         response = {
             "status": True,
-            "message": response_message.content,
-            "metadata": json.loads(response_message.metadata),
+            "message": {
+                response_message.receiver_name: response_message.content
+                for response_message in response_messages
+            },
+            "metadata": {
+                response_message.receiver_name: json.loads(response_message.metadata)
+                for response_message in response_messages
+            },
         }
         return response
     except Exception as ex_error:

@@ -21,7 +21,7 @@ import {
   LoadingOverlay,
 } from "../../atoms";
 
-const WorkflowView = ({}: any) => {
+const WorkflowView = ({ }: any) => {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
     status: true,

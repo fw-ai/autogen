@@ -10,6 +10,7 @@ class Message(object):
     user_id: str
     role: str
     content: str
+    receiver_name: str
     root_msg_id: Optional[str] = None
     msg_id: Optional[str] = None
     timestamp: Optional[str] = None
