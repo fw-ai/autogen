@@ -1,6 +1,5 @@
 # AutoGen Studio
 [![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
-[![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
 
 ![ARA](./docs/ara_stockprices.png)
 
@@ -23,7 +22,7 @@ Some of the capabilities supported by the app frontend include the following:
 
 Project Structure:
 
-- _autogenstudio/_ code for the backend classes and web api (FastAPI)
+- _firestudio/_ code for the backend classes and web api (FastAPI)
 - _frontend/_ code for the webui, built with Gatsby and TailwindCSS
 
 ### Installation
@@ -121,4 +120,4 @@ A: Yes, you can view the generated messages in the debug console of the web UI, 
 
 ## Acknowledgements
 
-AutoGen Studio is Based on the [AutoGen](https://microsoft.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).
+Fire Studio is Based on the [AutoGen](https://microsoft.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Gagan Bansal, Adam Fourney, Victor Dibia, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).

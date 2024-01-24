@@ -112,6 +112,11 @@
             "description": "Get price history for a stock ticker",
             "file_name": "get_price.py",
             "content": "\nimport yfinance as yf\nfrom firestudio.utils.utils import schema_recorder\nfrom typing_extensions import Annotated\nimport uuid\nfrom pathlib import Path\n\n@schema_recorder(description=\"Helper function to obtain stock price history of a company over specified period. The price information is written to a file and the path of the file is returned. The file is csv and contains following columns - Date,Open,High,Low,Close,Volume,Dividends,Stock Splits\")\ndef get_prices(ticker: Annotated[str, \"Stock ticker for a company\"],  period: Annotated[str, \"data period to download (Either Use period parameter or use start and end) Valid periods are: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max\"]) -> Annotated[str, \"File which contains the price of the a ticker, each price in a new line\"]:\n  # Generate a random UUID as the file name\n  file_name = \"/tmp/\" + str(uuid.uuid4()) + \".csv\" \n  file_path = Path(file_name)\n\n  tk = yf.Ticker(ticker=ticker)\n  prices = tk.history(period=period)\n\n  with open(file_path, \"w\") as f:\n    prices.to_csv(f) \n\n  return file_name\n"
+          },
+          {
+            "title": "plot_stock_prices",
+            "file_name": "plot_stock_prices.py",
+            "content": "\nimport pandas as pd\nimport matplotlib.pyplot as plt\nfrom typing_extensions import Annotated\nfrom typing import Dict\n\n@schema_recorder(description=\"Draw time series give stock prices of multiple stock tickers in a csv file.\")\ndef draw_time_series(title: Annotated[str, \"Title of the plot that is generated\"], \n                     file_name: Annotated[str, \"File to which to save the chart\"],\n                     csv_files: Annotated[Dict[str, str], \"Dictionary from stock ticker to CSV file that contain stock prices. The csv files should have schema - Date,Open,High,Low,Close,Volume,Dividends,Stock Splits\"], \n                     date_col: Annotated[str, \"Column name in csv that contains the date\"] = \"Date\", price_col: Annotated[str, \"Column name that contains the price\"] = \"Close\") -> str:  \n  \n  for label, csv_file in csv_files.items():\n    # Load the data into pandas dataframes\n    price_data = pd.read_csv(csv_file, index_col=date_col, parse_dates=True)\n  \n    # Plot NVDA stock price data\n    plt.plot(price_data.index, price_data['Close'], label=label)\n  \n  \n  plt.xlabel(date_col)\n  plt.ylabel(price_col)\n  plt.title(title)\n  plt.legend()\n  \n  # Save the plot to a file\n  plt.savefig(file_name)\n  \n  print(f\"Plot saved to {file_name}\")\n"
           }
         ],
         "config": {
@@ -170,6 +175,11 @@
             "description": "Get price history for a stock ticker",
             "file_name": "get_price.py",
             "content": "\nimport yfinance as yf\nfrom firestudio.utils.utils import schema_recorder\nfrom typing_extensions import Annotated\nimport uuid\nfrom pathlib import Path\n\n@schema_recorder(description=\"Helper function to obtain stock price history of a company over specified period. The price information is written to a file and the path of the file is returned. The file is csv and contains following columns - Date,Open,High,Low,Close,Volume,Dividends,Stock Splits\")\ndef get_prices(ticker: Annotated[str, \"Stock ticker for a company\"],  period: Annotated[str, \"data period to download (Either Use period parameter or use start and end) Valid periods are: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max\"]) -> Annotated[str, \"File which contains the price of the a ticker, each price in a new line\"]:\n  # Generate a random UUID as the file name\n  file_name = \"/tmp/\" + str(uuid.uuid4()) + \".csv\" \n  file_path = Path(file_name)\n\n  tk = yf.Ticker(ticker=ticker)\n  prices = tk.history(period=period)\n\n  with open(file_path, \"w\") as f:\n    prices.to_csv(f) \n\n  return file_name\n"
+          },
+          {
+            "title": "plot_stock_prices",
+            "file_name": "plot_stock_prices.py",
+            "content": "\nimport pandas as pd\nimport matplotlib.pyplot as plt\nfrom typing_extensions import Annotated\nfrom typing import Dict\n\n@schema_recorder(description=\"Draw time series give stock prices of multiple stock tickers in a csv file.\")\ndef draw_time_series(title: Annotated[str, \"Title of the plot that is generated\"], \n                     file_name: Annotated[str, \"File to which to save the chart\"],\n                     csv_files: Annotated[Dict[str, str], \"Dictionary from stock ticker to CSV file that contain stock prices. The csv files should have schema - Date,Open,High,Low,Close,Volume,Dividends,Stock Splits\"], \n                     date_col: Annotated[str, \"Column name in csv that contains the date\"] = \"Date\", price_col: Annotated[str, \"Column name that contains the price\"] = \"Close\") -> str:  \n  \n  for label, csv_file in csv_files.items():\n    # Load the data into pandas dataframes\n    price_data = pd.read_csv(csv_file, index_col=date_col, parse_dates=True)\n  \n    # Plot NVDA stock price data\n    plt.plot(price_data.index, price_data['Close'], label=label)\n  \n  \n  plt.xlabel(date_col)\n  plt.ylabel(price_col)\n  plt.title(title)\n  plt.legend()\n  \n  # Save the plot to a file\n  plt.savefig(file_name)\n  \n  print(f\"Plot saved to {file_name}\")\n"
           }
         ],
         "config": {
@@ -178,10 +188,11 @@
             "config_list": [
               {
                 "model": "accounts/fireworks/models/firefunction-v1",
-                "base_url": "https://api.fireworks.ai/inference/v1"
+                "base_url": "https://api.fireworks.ai/inference/v1",
+                "api_key": "7HRBTPQuqyQSAby0vEVs2VEjjHBGAbZgIWrm5SMs0gnPpkKm"
               }
             ],
-            "temperature": 0.1,
+            "temperature": 0.0,
             "timeout": 600,
             "cache_seed": null
           },
