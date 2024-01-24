@@ -8,7 +8,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
 
@@ -636,3 +636,16 @@ def implement(
     #     cost += metrics["gen_cost"]
     #     if metrics["succeed_assertions"] or i == len(configs) - 1:
     #         return responses[metrics["index_selected"]], cost, i
+
+
+def execute_code_from_work_dir(file_path: str, func_name: str, arguments: Dict[str, Any]) -> Any:
+    # Move to work dir before execution
+    dir_path = os.path.dirname(file_path)  ## directory of file
+    os.chdir(dir_path)
+    file_name = os.path.basename(file_path)
+    with open(file_name, "r") as file:
+        code = compile(file.read(), file_path, "exec")
+        exec(code, globals())
+
+    func = globals()[func_name]
+    return func(**arguments)

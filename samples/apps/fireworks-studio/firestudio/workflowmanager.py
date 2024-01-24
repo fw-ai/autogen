@@ -1,9 +1,12 @@
-from typing import List, Optional
 from dataclasses import asdict
 import autogen
 from .datamodel import AgentFlowSpec, AgentWorkFlowConfig, Message
-from .utils import get_skills_from_prompt, clear_folder
+from .utils import get_prompt_and_tools_from_skills, clear_folder
 from datetime import datetime
+from typing import Any, Callable, List, Dict, Optional, Tuple, TypeVar, Union
+
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 class AutoGenWorkFlowManager:
@@ -31,8 +34,9 @@ class AutoGenWorkFlowManager:
         if clear_work_dir:
             clear_folder(self.work_dir)
 
-        self.sender = self.load(config.sender)
         self.receiver = self.load(config.receiver)
+        self.sender = self.load(config.sender)
+
         self.agent_history = []
 
         if history:
@@ -107,8 +111,13 @@ class AutoGenWorkFlowManager:
         )
         skills_prompt = ""
         if agent_spec.skills:
-            # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            # Get both the skills prompt and the tools available to the model
+            # For functions that are annotated properly we get tools, for remaining
+            # we get the skills_prompt
+            skills_prompt, tools, functions = get_prompt_and_tools_from_skills(
+                agent_spec.skills, self.work_dir
+            )
+            agent_spec.config.llm_config.tools = tools
 
         if agent_spec.type == "userproxy":
             code_execution_config = agent_spec.config.code_execution_config or {}
