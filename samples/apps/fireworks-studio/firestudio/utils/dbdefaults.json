@@ -189,7 +189,6 @@
               {
                 "model": "accounts/fireworks/models/firefunction-v1",
                 "base_url": "https://api.fireworks.ai/inference/v1",
-                "api_key": "7HRBTPQuqyQSAby0vEVs2VEjjHBGAbZgIWrm5SMs0gnPpkKm"
               }
             ],
             "temperature": 0.0,
